@@ -1,9 +1,14 @@
 crypto = require 'crypto'
 User = require '../models/user'
+Post = require '../models/post'
 
 module.exports = (app) ->
   app.get '/', (req, res) ->
-    res.render 'index', title: '首页'
+    Post.get null, (err, posts) ->
+      posts = [] if err
+      res.render 'index',
+        title: '首页'
+        posts: posts
 
   app.get '/reg', checkNotLogin
   app.get '/reg', (req, res) ->
@@ -58,6 +63,30 @@ module.exports = (app) ->
     req.session.user = null
     req.flash 'success', '登出成功'
     res.redirect '/'
+
+  app.post '/post', checkLogin
+  app.post '/post', (req, res) ->
+    currentUser = req.session.user
+    post = new Post currentUser.name, req.body.post
+    post.save (err) ->
+      if err
+        req.flash 'error', err
+        return res.redirect '/'
+      req.flash 'success', '发表成功'
+      res.redirect "/u/#{currentUser.name}"
+
+  app.get '/u/:user', (req, res) ->
+    User.get req.params.user, (err, user) ->
+      unless user
+        req.flash 'error', '用户不存在'
+        return res.redirect '/'
+      Post.get user.name, (err, posts) ->
+        if err
+          req.flash 'error', err
+          return res.redirect '/'
+        res.render 'user',
+          title: user.name
+          posts: posts
 
 checkLogin = (req, res, next) ->
   unless req.session.user
