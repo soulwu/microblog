@@ -1,24 +1,31 @@
+crypto = require 'crypto'
+User = require '../models/user'
 
-#
-# * GET home page.
-# 
-exports.index = (req, res) ->
-  res.render 'index',
-    title: 'Express'
+module.exports = (app) ->
+  app.get '/', (req, res) ->
+    res.render 'index', title: '首页'
 
-exports.user = (req, res) ->
+  app.get '/reg', (req, res) ->
+    res.render 'reg', title: '用户注册'
 
-exports.post = (req, res) ->
-
-exports.reg = (req, res) ->
-
-exports.doReg = (req, res) ->
-
-exports.login = (req, res) ->
-
-exports.doLogin = (req, res) ->
-
-exports.logout = (req, res) ->
-
-
-
+  app.post '/reg', (req, res) ->
+    if req.body['password-repeat'] isnt req.body['password']
+      req.flash 'error', '两次输入的口令不一致'
+      return res.redirect '/reg'
+    md5 = crypto.createHash 'md5'
+    password = md5.update(req.body.password).digest 'base64'
+    newUser = new User
+      name: req.body.username
+      password: password
+    User.get newUser.name, (err, user) ->
+      err = 'Username already exists.' if user
+      if err
+        req.flash 'error', err
+        return res.redirect '/reg'
+      newUser.save (err) ->
+        if err
+          req.flash 'error', err
+          return res.redirect '/reg'
+        req.session.user = newUser
+        req.flash 'success', '注册成功'
+        res.redirect '/'
