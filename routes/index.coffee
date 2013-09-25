@@ -5,9 +5,11 @@ module.exports = (app) ->
   app.get '/', (req, res) ->
     res.render 'index', title: '首页'
 
+  app.get '/reg', checkNotLogin
   app.get '/reg', (req, res) ->
     res.render 'reg', title: '用户注册'
 
+  app.post '/reg', checkNotLogin
   app.post '/reg', (req, res) ->
     if req.body['password-repeat'] isnt req.body['password']
       req.flash 'error', '两次输入的口令不一致'
@@ -29,3 +31,42 @@ module.exports = (app) ->
         req.session.user = newUser
         req.flash 'success', '注册成功'
         res.redirect '/'
+
+  app.get '/login', checkNotLogin
+  app.get '/login', (req, res) -> res.render 'login', title: '用户登入'
+
+  app.post '/login', checkNotLogin
+  app.post '/login', (req, res) ->
+    md5 = crypto.createHash 'md5'
+    password = md5.update(req.body.password).digest 'base64'
+
+    User.get req.body.username, (err, user) ->
+      unless user
+        req.flash 'error', '用户不存在'
+        return res.redirect '/login'
+
+      if user.password isnt password
+        req.flash 'error', '用户口令错误'
+        return res.redirect '/login'
+
+      req.session.user = user
+      req.flash 'success', '登入成功'
+      res.redirect '/'
+
+  app.get '/logout', checkLogin
+  app.get '/logout', (req, res) ->
+    req.session.user = null
+    req.flash 'success', '登出成功'
+    res.redirect '/'
+
+checkLogin = (req, res, next) ->
+  unless req.session.user
+    req.flash 'error', '未登入'
+    return res.redirect '/login'
+  next()
+
+checkNotLogin = (req, res, next) ->
+  if req.session.user
+    req.flash 'error', '已登入'
+    return res.redirect '/'
+  next()
