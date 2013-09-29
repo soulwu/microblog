@@ -17,7 +17,9 @@ class Post
           mongodb.close()
           return callback err
 
-        collection.ensureIndex 'user'
+        collection.ensureIndex 'user', (err) ->
+          mongodb.close()
+          callback err
         collection.insert post, safe: true, (err, post) ->
           mongodb.close()
           callback err, post

@@ -18,7 +18,9 @@ class User
           mongodb.close()
           return callback err
 
-        collection.ensureIndex 'name', unique: true
+        collection.ensureIndex 'name', unique: true, (err) ->
+          mongodb.close()
+          callback err
         collection.insert user, safe: true, (err, user) ->
           mongodb.close()
           callback err, user

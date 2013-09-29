@@ -3,19 +3,13 @@ os = require 'os'
 
 numCPUs = os.cpus().length
 
-workers = {}
 if cluster.isMaster
   for i in [0...numCPUs]
-    worker = cluster.fork()
-    workers[worker.pid] = worker
+    cluster.fork()
   cluster.on 'exit', (worker) ->
-    delete workers[worker.pid]
-    worker = cluster.fork()
-    workers[worker.pid] = worker
-else
+    cluster.fork()
+  process.on 'SIGTERM', ->
+    cluster.workers[id].kill() for id of cluster.workers
+else if cluster.isWorker
   app = require './app'
   app.listen app.get('port')
-
-process.on 'SIGTERM', ->
-  process.kill pid for pid of workers
-  process.exit 0
